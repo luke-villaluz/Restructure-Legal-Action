@@ -1,0 +1,15 @@
+# PDF Processing
+PyPDF2==3.0.1
+pdfplumber==0.10.3
+
+# LLM Integration
+requests==2.31.0
+
+# Environment and Configuration
+python-dotenv==1.0.0
+
+# PDF Generation (for creating summary PDFs)
+reportlab==4.0.7
+
+# Logging and Utilities
+colorama==0.4.6
