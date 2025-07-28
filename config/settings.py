@@ -9,3 +9,5 @@ OLLAMA_MODEL = os.getenv('OLLAMA_MODEL_NAME', 'llama2:3.1b')
 SEARCH_TERMS = [term.strip() for term in os.getenv('SEARCH_TERMS', '').split(',') if term.strip()]
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 OUTPUT_DIR = 'data/summaries'
+TEST_FOLDER = os.getenv('TEST_FOLDER')
+MAIN_TEST_FOLDER_PATH = os.getenv('MAIN_TEST_FOLDER_PATH')
