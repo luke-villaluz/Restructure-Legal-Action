@@ -77,7 +77,7 @@ class OllamaClient:
                 "options": {
                     "temperature": 0.1,  # Low temperature for consistent legal analysis
                     "top_p": 0.9,
-                    "max_tokens": 3000  # Increased for longer documents
+                    "max_tokens": 8000  # Increased for longer documents
                 }
             }
             
@@ -87,7 +87,7 @@ class OllamaClient:
             response = requests.post(
                 f"{self.base_url}/api/generate",
                 json=payload,
-                timeout=180  # 3 minute timeout for large document sets
+                timeout=300  # bumped to 5 minutes for increased max tokens
             )
             
             if response.status_code == 200:
@@ -159,7 +159,7 @@ class OllamaClient:
                 "raw_response": response_text
             }
             
-            # Simple parsing - look for sections
+            # Parse the response line by line
             lines = response_text.split('\n')
             current_section = None
             
@@ -168,7 +168,7 @@ class OllamaClient:
                 if not line:
                     continue
                     
-                # Detect sections
+                # Detect sections (case insensitive)
                 if "KEY FINDINGS:" in line.upper():
                     current_section = "key_findings"
                     continue
@@ -178,13 +178,35 @@ class OllamaClient:
                 elif "RECOMMENDATIONS:" in line.upper():
                     current_section = "recommendations"
                     continue
-                elif line.startswith('[') and line.endswith(']'):
-                    # This is a finding/recommendation item
-                    if current_section and current_section in analysis:
-                        # Remove the brackets and add to appropriate section
-                        content = line[1:-1].strip()
+                elif "COMPANY:" in line.upper():
+                    # Extract company name if provided
+                    if ":" in line:
+                        company = line.split(":", 1)[1].strip()
+                        if company and company != "[Company Name]":
+                            analysis["company"] = company
+                    continue
+                
+                # Parse bullet points and numbered items
+                if current_section and current_section in analysis:
+                    # Look for bullet points (•, -, *, etc.)
+                    if line.startswith(('•', '-', '*', '→', '⚠')):
+                        content = line[1:].strip()
                         if content:
                             analysis[current_section].append(content)
+                    # Look for numbered items
+                    elif line[0].isdigit() and '.' in line[:3]:
+                        content = line.split('.', 1)[1].strip()
+                        if content:
+                            analysis[current_section].append(content)
+                    # Look for bracketed items (fallback)
+                    elif line.startswith('[') and line.endswith(']'):
+                        content = line[1:-1].strip()
+                        if content and content != "[Finding 1 - specific clause or term identified]":
+                            analysis[current_section].append(content)
+                    # Look for lines that start with common legal terms
+                    elif any(term in line.upper() for term in ['SECTION', 'CLAUSE', 'TERMINATION', 'LIABILITY', 'NOTICE', 'INDEMNIFICATION']):
+                        if len(line) > 10:  # Only add if it's substantial content
+                            analysis[current_section].append(line)
             
             return analysis
             

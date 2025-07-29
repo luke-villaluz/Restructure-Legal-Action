@@ -161,7 +161,7 @@ class SummaryGenerator:
             # Add raw response section (collapsed by default)
             if analysis_data.get('raw_response'):
                 story.append(Paragraph("Full Analysis Response", self.section_style))
-                raw_text = analysis_data['raw_response'][:1000] + "..." if len(analysis_data['raw_response']) > 1000 else analysis_data['raw_response']
+                raw_text = analysis_data['raw_response']
                 story.append(Paragraph(raw_text, self.styles['Normal']))
             
             # Build PDF
