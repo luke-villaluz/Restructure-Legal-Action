@@ -1,5 +1,6 @@
 data/
 
+prompts/
 
 #template .gitignore python
 # Byte-compiled / optimized / DLL files

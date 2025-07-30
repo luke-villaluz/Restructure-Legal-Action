@@ -1,11 +1,12 @@
 import os
+import io  # Add this import for BytesIO
 import PyPDF2
 import pdfplumber
 from typing import List, Dict, Optional, Any
 from utils.logger import logger
 
 class DocumentProcessor:
-    """Process PDF and Word documents for text extraction"""
+    """Process PDF and Word documents for text extraction with OCR fallback"""
     
     def __init__(self):
         self.logger = logger
@@ -43,7 +44,7 @@ class DocumentProcessor:
             return []
     
     def extract_text_from_pdf(self, pdf_path: str) -> Optional[str]:
-        """Extract text from a PDF file using multiple methods"""
+        """Extract text from a PDF file using multiple methods with OCR fallback"""
         try:
             self.logger.info(f"Extracting text from: {pdf_path}")
             
@@ -78,11 +79,96 @@ class DocumentProcessor:
             except Exception as e:
                 self.logger.warning(f"PyPDF2 failed: {e}")
             
+            # Final fallback to OCR
+            try:
+                ocr_text = self._extract_text_with_ocr(pdf_path)
+                if ocr_text:
+                    self.logger.info(f"Successfully extracted {len(ocr_text)} characters from PDF using OCR")
+                    return ocr_text
+            except Exception as e:
+                self.logger.warning(f"OCR failed: {e}")
+            
             self.logger.error(f"Failed to extract text from PDF: {pdf_path}")
             return None
             
         except Exception as e:
             self.logger.error(f"Error extracting text from PDF {pdf_path}: {e}")
+            return None
+    
+    def _extract_text_with_ocr(self, pdf_path: str) -> Optional[str]:
+        """
+        Extract text from PDF using EasyOCR (Optical Character Recognition)
+        
+        Args:
+            pdf_path: Path to the PDF file
+            
+        Returns:
+            Extracted text or None if failed
+        """
+        try:
+            # Import OCR dependencies
+            try:
+                import easyocr
+                from PIL import Image
+                import fitz  # PyMuPDF for PDF to image conversion
+                import numpy as np
+            except ImportError as e:
+                self.logger.error(f"OCR dependencies not installed: {e}")
+                self.logger.error("Install with: pip install easyocr Pillow PyMuPDF")
+                return None
+            
+            self.logger.info(f"🖼️ Starting EasyOCR processing for: {pdf_path}")
+            
+            # Initialize EasyOCR reader (first time will download models)
+            reader = easyocr.Reader(['en'])
+            
+            # Open PDF with PyMuPDF
+            pdf_document = fitz.open(pdf_path)
+            extracted_text = ""
+            
+            for page_num in range(len(pdf_document)):
+                try:
+                    # Get page
+                    page = pdf_document.load_page(page_num)
+                    
+                    # Convert page to image with high resolution
+                    mat = fitz.Matrix(2.0, 2.0)  # 2x zoom for better OCR
+                    pix = page.get_pixmap(matrix=mat)
+                    
+                    # Convert to numpy array (this is what EasyOCR expects)
+                    img_array = np.frombuffer(pix.tobytes("png"), dtype=np.uint8)
+                    img = Image.open(io.BytesIO(img_array))
+                    img_array = np.array(img)
+                    
+                    # Perform OCR with EasyOCR
+                    results = reader.readtext(img_array)
+                    
+                    # Extract text from results
+                    page_text = ""
+                    for (bbox, text, confidence) in results:
+                        if confidence > 0.5:  # Only keep text with >50% confidence
+                            page_text += text + " "
+                    
+                    if page_text.strip():
+                        extracted_text += page_text.strip() + "\n"
+                        self.logger.info(f"EasyOCR extracted {len(page_text)} characters from page {page_num + 1}")
+                    else:
+                        self.logger.warning(f"EasyOCR found no text on page {page_num + 1}")
+                        
+                except Exception as e:
+                    self.logger.warning(f"EasyOCR failed on page {page_num + 1}: {e}")
+                    continue
+            
+            pdf_document.close()
+            
+            if extracted_text.strip():
+                return extracted_text.strip()
+            else:
+                self.logger.warning("EasyOCR extracted no text from any page")
+                return None
+                
+        except Exception as e:
+            self.logger.error(f"EasyOCR processing failed: {e}")
             return None
     
     def extract_text_from_word(self, word_path: str) -> Optional[str]:

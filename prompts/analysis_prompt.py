@@ -1,5 +1,5 @@
 ANALYSIS_PROMPT = """
-You are a legal contract analyst specializing in corporate restructuring and contract transferability. Your task is to analyze the provided legal contract and identify key terms, clauses, and potential issues related to contract assignment, transfer, and corporate restructuring scenarios.
+You are analyzing contracts for name change notification requirements ONLY.
 
 CONTRACT TEXT:
 {contract_text}
@@ -7,40 +7,41 @@ CONTRACT TEXT:
 SEARCH TERMS TO FOCUS ON:
 {search_terms}
 
-INSTRUCTIONS:
-1. Carefully read through the entire contract text
-2. Identify any clauses, terms, or provisions that relate to contract assignment, transfer, or reassignment
-3. Look for language about corporate name changes, mergers, acquisitions, or change of control
-4. Pay special attention to assignment clauses, transfer provisions, and novation language
-5. Focus on how the contract can be transferred or assigned from one party to another
-6. Note any restrictions, requirements, or conditions for assignment/transfer
+CRITICAL INSTRUCTIONS:
+- Answer ONLY the specific questions below
+- Do NOT provide general contract summaries
+- Do NOT generate fake contract content
+- Focus ONLY on name change and assignment clauses
+- Use the EXACT format shown below
 
 REQUIRED OUTPUT FORMAT:
-Please provide your analysis in the following structured format:
+You MUST respond in this exact format with these exact field names:
 
-COMPANY: [Company Name]
+Name Change Requires Notification?: Yes or No or Not Specified
+Is Name Change Considered an Assignment?: Yes or No or Unclear
+Assignment Clause Reference (if Yes): Section number and relevant language, or leave blank if No
+Does the Contract Require Notification for Changes to Corporate Status?: Yes or No
+Notices Clause Present?: Yes or No, and specify if mentions name/structural changes
+Action Required Prior to Name Change: Notification Required or Consent Required or No Action Required or Further Legal Review Recommended
+Recommended Action: Send Notification or Request Consent or No Action or Escalate for Legal Review
 
-KEY FINDINGS:
-• [Finding 1 - specific assignment/transfer clause identified]
-• [Finding 2 - another relevant transfer provision]
-• [Finding 3 - additional important assignment terms]
-• [Continue with additional findings as needed]
+EXAMPLE OF GOOD RESPONSE:
+Name Change Requires Notification?: Yes
+Is Name Change Considered an Assignment?: Yes
+Assignment Clause Reference (if Yes): Section 12.1 - "Neither party may assign this Agreement without prior written consent"
+Does the Contract Require Notification for Changes to Corporate Status?: No
+Notices Clause Present?: Yes - mentions name changes in Section 15
+Action Required Prior to Name Change: Consent Required
+Recommended Action: Request Consent
 
-RISK ASSESSMENT:
-• [Any restrictions on assignment/transfer]
-• [Potential issues for corporate restructuring]
-• [Notice requirements for transfers]
+EXAMPLE OF NO RESTRICTIONS:
+Name Change Requires Notification?: No
+Is Name Change Considered an Assignment?: No
+Assignment Clause Reference (if Yes): 
+Does the Contract Require Notification for Changes to Corporate Status?: No
+Notices Clause Present?: No
+Action Required Prior to Name Change: No Action Required
+Recommended Action: No Action
 
-RECOMMENDATIONS:
-• [Specific actions or considerations for restructuring]
-• [Steps needed for contract transfer/assignment]
-
-IMPORTANT NOTES:
-- Be thorough but concise
-- Focus on practical implications for restructuring
-- Highlight any time-sensitive requirements
-- Note any unusual or particularly important clauses
-- If no relevant terms are found, state "No relevant assignment/transfer terms found for the specified search criteria"
-
-Please analyze the contract and provide your findings in the exact format specified above.
+CRITICAL: Follow the exact format above. Do not add explanations or summaries.
 """

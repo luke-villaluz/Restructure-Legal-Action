@@ -108,7 +108,46 @@ def test_text_extraction():
         print(f"❌ Text extraction: FAIL - {e}")
         return False
 
+def test_ocr_extraction():
+    """Test EasyOCR text extraction from scanned PDFs"""
+    print("Testing EasyOCR extraction...")
+    
+    if not TEST_FOLDER:
+        print("❌ TEST_FOLDER not set in .env")
+        return False
+    
+    processor = DocumentProcessor()
+    
+    try:
+        # Find PDF files in test folder
+        pdf_files = [f for f in os.listdir(TEST_FOLDER) 
+                    if f.lower().endswith('.pdf')]
+        
+        if not pdf_files:
+            print("❌ No PDF files found for OCR testing")
+            return False
+        
+        # Test OCR on first PDF
+        test_pdf = os.path.join(TEST_FOLDER, pdf_files[0])
+        print(f"Testing EasyOCR on: {pdf_files[0]}")
+        
+        # Try OCR extraction
+        ocr_text = processor._extract_text_with_ocr(test_pdf)
+        
+        if ocr_text:
+            print(f"✅ EasyOCR extraction: PASS - Extracted {len(ocr_text)} characters")
+            print(f"First 200 chars: {ocr_text[:200]}...")
+            return True
+        else:
+            print("❌ EasyOCR extraction: FAIL - No text extracted")
+            return False
+            
+    except Exception as e:
+        print(f"❌ EasyOCR extraction: FAIL - {e}")
+        return False
+
 if __name__ == "__main__":
     test_data_structure_scanning()
     test_document_discovery()
     test_text_extraction()
+    test_ocr_extraction()  # Add this line

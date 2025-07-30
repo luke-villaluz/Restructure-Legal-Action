@@ -1,86 +1,52 @@
 import os
 from typing import List, Dict, Optional, Any
-from config.settings import INPUT_DIRECTORY
+from config.settings import PROCESSING_PATH  # Changed from PATH to PROCESSING_PATH
 from utils.logger import logger
 
 class FileManager:
-    """Manages file operations and company discovery for the legal analysis workflow"""
+    """Manages file operations for the legal analysis workflow using a single path"""
     
     def __init__(self):
         self.logger = logger
-        self.vendors_path = "data/Vendors"
-        self.clients_path = "data/Clients"
+        self.base_path = PROCESSING_PATH  # Changed from PATH to PROCESSING_PATH
         
     def get_all_companies(self) -> List[Dict[str, str]]:
         """
-        Discover all company folders in Vendors and Clients directories
+        Discover all company folders in the single path
         
         Returns:
             List of dictionaries with company info:
             {
                 'name': 'Company Name',
-                'type': 'vendor' or 'client', 
+                'type': 'company', 
                 'path': 'full/path/to/company/folder'
             }
         """
         companies = []
         
         try:
-            # Scan Vendors
-            if os.path.exists(self.vendors_path):
-                vendor_folders = self._get_company_folders(self.vendors_path)
-                for folder in vendor_folders:
-                    companies.append({
-                        'name': folder,
-                        'type': 'vendor',
-                        'path': os.path.join(self.vendors_path, folder)
-                    })
-                self.logger.info(f"Found {len(vendor_folders)} vendor companies")
+            if not self.base_path or not os.path.exists(self.base_path):
+                self.logger.error(f"❌ Base path not found: {self.base_path}")
+                return []
             
-            # Scan Clients
-            if os.path.exists(self.clients_path):
-                client_folders = self._get_company_folders(self.clients_path)
-                for folder in client_folders:
-                    companies.append({
-                        'name': folder,
-                        'type': 'client',
-                        'path': os.path.join(self.clients_path, folder)
-                    })
-                self.logger.info(f"Found {len(client_folders)} client companies")
+            # Get all subfolders in the base path
+            subfolders = [
+                f for f in os.listdir(self.base_path) 
+                if os.path.isdir(os.path.join(self.base_path, f))
+            ]
             
-            total_companies = len(companies)
-            self.logger.info(f"Total companies discovered: {total_companies}")
+            for folder in subfolders:
+                companies.append({
+                    'name': folder,
+                    'type': 'company',
+                    'path': os.path.join(self.base_path, folder)
+                })
             
+            self.logger.info(f"📁 Found {len(companies)} companies in {self.base_path}")
             return companies
             
         except Exception as e:
-            self.logger.error(f"Error discovering companies: {e}")
-            return []
-    
-    def _get_company_folders(self, directory_path: str) -> List[str]:
-        """
-        Get list of company folder names from a directory
-        
-        Args:
-            directory_path: Path to Vendors or Clients directory
-            
-        Returns:
-            List of company folder names
-        """
-        try:
-            if not os.path.exists(directory_path):
-                return []
-            
-            # Get all subdirectories (company folders)
-            company_folders = [
-                f for f in os.listdir(directory_path) 
-                if os.path.isdir(os.path.join(directory_path, f))
-            ]
-            
-            return company_folders
-            
-        except Exception as e:
-            self.logger.error(f"Error getting company folders from {directory_path}: {e}")
+            self.logger.error(f"❌ Error discovering companies: {e}")
             return []
     
     def get_company_documents(self, company_folder_path: str) -> List[str]:
@@ -95,7 +61,7 @@ class FileManager:
         """
         try:
             if not os.path.exists(company_folder_path):
-                self.logger.error(f"Company folder does not exist: {company_folder_path}")
+                self.logger.error(f"❌ Company folder does not exist: {company_folder_path}")
                 return []
             
             # Import here to avoid circular imports
@@ -106,14 +72,14 @@ class FileManager:
             document_files = processor.get_all_documents_in_folder(company_folder_path)
             
             if len(document_files) == 0:
-                self.logger.warning(f"No documents found in {company_folder_path}")
+                self.logger.warning(f"⚠️ No documents found in {company_folder_path}")
             else:
-                self.logger.info(f"Found {len(document_files)} documents in {company_folder_path}")
+                self.logger.info(f"✅ Found {len(document_files)} documents in {company_folder_path}")
             
             return document_files
             
         except Exception as e:
-            self.logger.error(f"Error getting documents for {company_folder_path}: {e}")
+            self.logger.error(f"❌ Error getting documents for {company_folder_path}: {e}")
             return []
     
     def get_company_combined_text(self, company_folder_path: str) -> Dict[str, Any]:
@@ -133,7 +99,7 @@ class FileManager:
         """
         try:
             if not os.path.exists(company_folder_path):
-                self.logger.error(f"Company folder does not exist: {company_folder_path}")
+                self.logger.error(f"❌ Company folder does not exist: {company_folder_path}")
                 return {
                     'combined_text': "",
                     'document_stats': {'total': 0, 'successful': 0, 'failed': 0},
@@ -148,7 +114,7 @@ class FileManager:
             extraction_results = processor.extract_all_text_from_folder(company_folder_path)
             
             if not extraction_results['successful_texts']:
-                self.logger.warning(f"No text extracted from {company_folder_path}")
+                self.logger.warning(f"⚠️ No text extracted from {company_folder_path}")
                 return {
                     'combined_text': "",
                     'document_stats': extraction_results['document_stats'],
@@ -159,14 +125,14 @@ class FileManager:
             combined_text = processor.combine_document_texts(extraction_results['successful_texts'])
             
             if combined_text:
-                self.logger.info(f"Successfully combined text from {len(extraction_results['successful_texts'])} documents ({len(combined_text)} characters)")
+                self.logger.info(f"✅ Successfully combined text from {len(extraction_results['successful_texts'])} documents ({len(combined_text)} characters)")
                 return {
                     'combined_text': combined_text,
                     'document_stats': extraction_results['document_stats'],
                     'failed_documents': extraction_results['failed_documents']
                 }
             else:
-                self.logger.warning(f"Failed to combine text from {company_folder_path}")
+                self.logger.warning(f"⚠️ Failed to combine text from {company_folder_path}")
                 return {
                     'combined_text': "",
                     'document_stats': extraction_results['document_stats'],
@@ -174,66 +140,37 @@ class FileManager:
                 }
             
         except Exception as e:
-            self.logger.error(f"Error getting combined text for {company_folder_path}: {e}")
+            self.logger.error(f"❌ Error getting combined text for {company_folder_path}: {e}")
             return {
                 'combined_text': "",
                 'document_stats': {'total': 0, 'successful': 0, 'failed': 0},
                 'failed_documents': []
             }
     
-    def validate_company_structure(self) -> Dict[str, bool]:
+    def validate_path_structure(self) -> bool:
         """
-        Validate that the expected directory structure exists
+        Validate that the base path exists and has content
         
         Returns:
-            Dictionary with validation results
-        """
-        validation = {
-            'vendors_exists': False,
-            'clients_exists': False,
-            'vendors_has_folders': False,
-            'clients_has_folders': False
-        }
-        
-        try:
-            # Check Vendors directory
-            if os.path.exists(self.vendors_path):
-                validation['vendors_exists'] = True
-                vendor_folders = self._get_company_folders(self.vendors_path)
-                validation['vendors_has_folders'] = len(vendor_folders) > 0
-            
-            # Check Clients directory
-            if os.path.exists(self.clients_path):
-                validation['clients_exists'] = True
-                client_folders = self._get_company_folders(self.clients_path)
-                validation['clients_has_folders'] = len(client_folders) > 0
-            
-            return validation
-            
-        except Exception as e:
-            self.logger.error(f"Error validating company structure: {e}")
-            return validation
-    
-    def get_company_count(self) -> Dict[str, int]:
-        """
-        Get count of companies by type
-        
-        Returns:
-            Dictionary with counts: {'vendors': X, 'clients': Y, 'total': Z}
+            True if valid, False otherwise
         """
         try:
+            if not self.base_path:
+                self.logger.error("❌ PROCESSING_PATH not set in .env file")
+                return False
+            
+            if not os.path.exists(self.base_path):
+                self.logger.error(f"❌ Path does not exist: {self.base_path}")
+                return False
+            
             companies = self.get_all_companies()
+            if not companies:
+                self.logger.error(f"❌ No company folders found in {self.base_path}")
+                return False
             
-            vendor_count = len([c for c in companies if c['type'] == 'vendor'])
-            client_count = len([c for c in companies if c['type'] == 'client'])
-            total_count = len(companies)
-            
-            return {
-                'vendors': vendor_count,
-                'clients': client_count,
-                'total': total_count
-            }
+            self.logger.info(f"✅ Path validation successful: {len(companies)} companies found")
+            return True
             
         except Exception as e:
-            self.logger.error(f"Error getting company count: {e}")
-            return {'vendors': 0, 'clients': 0, 'total': 0}
+            self.logger.error(f"❌ Error validating path structure: {e}")
+            return False
