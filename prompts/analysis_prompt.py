@@ -1,5 +1,9 @@
 ANALYSIS_PROMPT = """
-You are analyzing contracts for name change notification requirements ONLY.
+AI Contract Review Prompt – Corporate Restructure Notification Assessment
+
+AI Contract Review Prompt – Corporate Restructure Notification Assessment
+
+You are reviewing a contract to determine if a change in our company’s legal name (e.g., from "Xponance Inc." to "Xponance LLC") or a Corporate Restructuring to an LLC from being Incorporated requires prior notification or consent from the counterparty. Please analyze the contract and return your findings in the following structured tabular format.
 
 CONTRACT TEXT:
 {contract_text}
@@ -7,41 +11,39 @@ CONTRACT TEXT:
 SEARCH TERMS TO FOCUS ON:
 {search_terms}
 
-CRITICAL INSTRUCTIONS:
-- Answer ONLY the specific questions below
-- Do NOT provide general contract summaries
-- Do NOT generate fake contract content
-- Focus ONLY on name change and assignment clauses
-- Use the EXACT format shown below
+You will be returning a JSON object with the following fields, for each field is there possible option if they have one.
 
-REQUIRED OUTPUT FORMAT:
-You MUST respond in this exact format with these exact field names:
+Contract Name
+Contract Counterparty
+Effective Date
+Renewal/Termination Date
+Corporate Restructure or Name Chane Requires Notification or Consent? Valid responses: Yes / No / Not Specified
+Clause Reference (if Yes) Provide section number and brief excerpt or title of clause
+Is a Corporate Restructure or a Name Change Considered an Assignment? Valid responses: Yes / No / Unclear
+Assignment Clause Reference (if Yes) Provide section number and relevant language
+Material Corporate Structure Change or Name Change Clauses?
+Does the contract require notification for changes to corporate status? Yes / No
+Notices Clause Present? Yes / No, and specify if it mentions name or structural changes
+Action Required Prior to Name Chane or Corporate Restructure Valid responses: Notification Required / Consent Required / No Action Required / Further Legal Review Recommended
+Recommended Action Options: Send Notification / Request Consent / No Action / Escalate for Legal Review
 
-Name Change Requires Notification?: Yes or No or Not Specified
-Is Name Change Considered an Assignment?: Yes or No or Unclear
-Assignment Clause Reference (if Yes): Section number and relevant language, or leave blank if No
-Does the Contract Require Notification for Changes to Corporate Status?: Yes or No
-Notices Clause Present?: Yes or No, and specify if mentions name/structural changes
-Action Required Prior to Name Change: Notification Required or Consent Required or No Action Required or Further Legal Review Recommended
-Recommended Action: Send Notification or Request Consent or No Action or Escalate for Legal Review
+Return EXACTLY ONE JSON object with these fields:
+{{
+    "contract_name": "Name of the contract",
+    "contract_counterparty": "Name of the counterparty",
+    "effective_date": "Effective date of the contract",
+    "renewal_termination_date": "Renewal or termination date",
+    "name_change_requires_notification": "Yes/No/Not Specified - whether corporate restructure or name change requires notification or consent",
+    "clause_reference": "Specific clause reference if notification/consent is required, otherwise 'N/A'",
+    "is_assignment": "Yes/No/Unclear - whether corporate restructure or name change is considered an assignment",
+    "assignment_clause_reference": "Assignment clause reference if applicable, otherwise 'N/A'",
+    "material_corporate_structure_clauses": "Yes/No/Not Specified - whether there are material corporate structure change or name change clauses",
+    "notices_clause_present": "Yes/No/Not Specified - whether a notices clause is present",
+    "action_required": "Specific action required prior to name change or corporate restructure",
+    "recommended_action": "Recommended next steps"
+}}
 
-EXAMPLE OF GOOD RESPONSE:
-Name Change Requires Notification?: Yes
-Is Name Change Considered an Assignment?: Yes
-Assignment Clause Reference (if Yes): Section 12.1 - "Neither party may assign this Agreement without prior written consent"
-Does the Contract Require Notification for Changes to Corporate Status?: No
-Notices Clause Present?: Yes - mentions name changes in Section 15
-Action Required Prior to Name Change: Consent Required
-Recommended Action: Request Consent
+**IMPORTANT: Analyze all documents as ONE contract package and return exactly ONE summary object, not one object per document file.**
 
-EXAMPLE OF NO RESTRICTIONS:
-Name Change Requires Notification?: No
-Is Name Change Considered an Assignment?: No
-Assignment Clause Reference (if Yes): 
-Does the Contract Require Notification for Changes to Corporate Status?: No
-Notices Clause Present?: No
-Action Required Prior to Name Change: No Action Required
-Recommended Action: No Action
-
-CRITICAL: Follow the exact format above. Do not add explanations or summaries.
+Please populate all fields to the best of your ability using the contract content, and flag any uncertainties clearly. Output should be valid JSON.
 """

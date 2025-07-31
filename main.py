@@ -8,7 +8,7 @@ import sys
 from typing import List, Dict, Any
 from config.settings import SEARCH_TERMS, PROCESSING_PATH
 from core.file_manager import FileManager
-from core.llm_client import create_ollama_client
+from core.ai_factory import create_ai_client
 from core.excel_generator import ExcelGenerator
 from utils.logger import logger
 
@@ -18,7 +18,7 @@ class LegalAnalyzer:
     def __init__(self):
         self.logger = logger
         self.file_manager = FileManager()
-        self.llm_client = create_ollama_client()
+        self.llm_client = create_ai_client("perplexity")  # Changed to Perplexity
         self.excel_generator = ExcelGenerator()
         
         # Track processing statistics
@@ -37,9 +37,9 @@ class LegalAnalyzer:
                 self.logger.error("❌ Path validation failed. Please check your PROCESSING_PATH in .env")
                 return False
             
-            # Test Ollama connection
+            # Test Perplexity connection
             if not self.llm_client.test_connection():
-                self.logger.error("❌ Cannot connect to Ollama. Please ensure Ollama is running.")
+                self.logger.error("❌ Cannot connect to Perplexity. Please check your API key.")
                 return False
             
             # Get companies to process
@@ -96,7 +96,7 @@ class LegalAnalyzer:
                 'search_terms': SEARCH_TERMS
             }
             
-            # Send to Ollama for analysis
+            # Send to LLM for analysis
             analysis_result = self.llm_client.analyze_company_documents(company_data)
             
             if not analysis_result:

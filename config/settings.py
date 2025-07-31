@@ -10,6 +10,11 @@ SEARCH_TERMS = [term.strip() for term in os.getenv('SEARCH_TERMS', '').split(','
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 OUTPUT_DIR = 'data/summaries'
 
+# Perplexity Configuration
+PERPLEXITY_MODEL = os.getenv('PERPLEXITY_MODEL', 'sonar-pro')
+PERPLEXITY_API_KEY = os.getenv('PERPLEXITY_API_KEY')
+PERPLEXITY_BASE_URL = os.getenv('PERPLEXITY_BASE_URL', 'https://api.perplexity.ai')
+
 # OCR Configuration
 ENABLE_OCR = os.getenv('ENABLE_OCR', 'true').lower() == 'true'
 OCR_LANGUAGE = os.getenv('OCR_LANGUAGE', 'eng')

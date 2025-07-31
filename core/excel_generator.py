@@ -42,18 +42,23 @@ class ExcelGenerator:
             wb = load_workbook(excel_filepath)
             ws = wb.active
             
-            # Add data for each column
+            # FIXED field mappings to match JSON response structure
             ws[f'A{row_number}'] = company_data.get('company', 'Unknown')
-            ws[f'B{row_number}'] = company_data.get('name_change_requires_notification', 'Not Specified')
-            ws[f'C{row_number}'] = company_data.get('name_change_assignment', 'Unclear')
-            ws[f'D{row_number}'] = company_data.get('assignment_clause_reference', '')
-            ws[f'E{row_number}'] = company_data.get('material_corporate_structure', 'No')
-            ws[f'F{row_number}'] = company_data.get('notices_clause_present', 'No')
-            ws[f'G{row_number}'] = company_data.get('action_required', 'No Action Required')
-            ws[f'H{row_number}'] = company_data.get('recommended_action', 'No Action')
+            ws[f'B{row_number}'] = company_data.get('contract_name', 'Not Specified')
+            ws[f'C{row_number}'] = company_data.get('contract_counterparty', 'Not Specified')
+            ws[f'D{row_number}'] = company_data.get('effective_date', 'Not Specified')
+            ws[f'E{row_number}'] = company_data.get('renewal_termination_date', 'Not Specified')
+            ws[f'F{row_number}'] = company_data.get('name_change_requires_notification', 'Not Specified')
+            ws[f'G{row_number}'] = company_data.get('clause_reference', 'N/A')
+            ws[f'H{row_number}'] = company_data.get('is_assignment', 'Not Specified')
+            ws[f'I{row_number}'] = company_data.get('assignment_clause_reference', 'N/A')
+            ws[f'J{row_number}'] = company_data.get('material_corporate_structure_clauses', 'Not Specified')
+            ws[f'K{row_number}'] = company_data.get('notices_clause_present', 'Not Specified')
+            ws[f'L{row_number}'] = company_data.get('action_required', 'Not Specified')
+            ws[f'M{row_number}'] = company_data.get('recommended_action', 'Not Specified')
             
             # Format the row
-            for col in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']:
+            for col in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M']:
                 ws[f'{col}{row_number}'].alignment = Alignment(wrap_text=True, vertical="top")
             
             wb.save(excel_filepath)
@@ -67,12 +72,17 @@ class ExcelGenerator:
         """Set up the detailed header row with formatting"""
         headers = [
             "Company",
-            "Name Change Requires Notification",
-            "Is Name Change Considered an Assignment?",
+            "Contract Name",
+            "Contract Counterparty",
+            "Effective Date",
+            "Renewal/Termination Date",
+            "Corporate Restructure or Name Change Requires Notification or Consent?",
+            "Clause Reference (if Yes)",
+            "Is a Corporate Restructure or a Name Change Considered an Assignment?",
             "Assignment Clause Reference (if Yes)",
-            "Does the Contract Require Notification for Changes to Corporate Status?",
+            "Material Corporate Structure Change or Name Change Clauses?",
             "Notices Clause Present?",
-            "Action Required Prior to Name Change",
+            "Action Required Prior to Name Change or Corporate Restructure",
             "Recommended Action"
         ]
         
@@ -84,7 +94,7 @@ class ExcelGenerator:
     
     def _adjust_column_widths(self, ws):
         """Auto-adjust column widths for better readability"""
-        column_widths = [25, 30, 30, 30, 35, 25, 35, 25]  # Reduced width for "Name Change Requires Notification"
+        column_widths = [20, 25, 25, 15, 20, 35, 30, 35, 30, 35, 25, 35, 25]
         
         for col, width in enumerate(column_widths, 1):
             ws.column_dimensions[chr(64 + col)].width = width

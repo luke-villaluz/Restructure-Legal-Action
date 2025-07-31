@@ -4,9 +4,11 @@ from typing import Dict, Any, Optional
 from config.settings import OLLAMA_MODEL
 from utils.logger import logger
 from core.text_filter import TextFilter
+from core.ai_interface import AIAnalyzer
+from core.response_parser import ResponseParser
 
-class OllamaClient:
-    """Client for interacting with Ollama API"""
+class OllamaClient(AIAnalyzer):
+    """Ollama implementation of AIAnalyzer interface"""
     
     def __init__(self, base_url: str = "http://localhost:11434"):
         self.base_url = base_url
@@ -28,18 +30,7 @@ class OllamaClient:
             return False
     
     def analyze_company_documents(self, company_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """
-        Analyze all documents for a company and return structured data
-        
-        Args:
-            company_data: Dictionary containing:
-                - company_name: Name of the company
-                - combined_text: Combined text from all documents
-                - search_terms: List of terms to search for
-        
-        Returns:
-            Dictionary with structured analysis results or None if failed
-        """
+        """Implementation of abstract method"""
         try:
             company_name = company_data.get('company_name', 'Unknown Company')
             combined_text = company_data.get('combined_text', '')
@@ -49,7 +40,6 @@ class OllamaClient:
                 self.logger.warning(f"No text to analyze for {company_name}")
                 return None
             
-            # Use the bulletproof simple approach
             return self._analyze_with_simple_approach(company_name, combined_text, search_terms)
             
         except Exception as e:
@@ -79,9 +69,9 @@ class OllamaClient:
                 "prompt": prompt,
                 "stream": False,
                 "options": {
-                    "temperature": 0.1,  # Low temperature for consistent responses
+                    "temperature": 0.1,
                     "top_p": 0.9,
-                    "max_tokens": 10000   # Reasonable limit for simple responses
+                    "max_tokens": 10000
                 }
             }
             
@@ -110,59 +100,8 @@ class OllamaClient:
             return None
 
     def _parse_detailed_response(self, text: str, company_name: str) -> Dict[str, Any]:
-        """Parse the detailed response format"""
-        try:
-            # Initialize with defaults
-            result = {
-                'company': company_name,
-                'name_change_requires_notification': 'Not Specified',
-                'name_change_assignment': 'Unclear',
-                'assignment_clause_reference': '',
-                'material_corporate_structure': 'No',
-                'notices_clause_present': 'No',
-                'action_required': 'No Action Required',
-                'recommended_action': 'No Action'
-            }
-            
-            # Parse each line
-            lines = [line.strip() for line in text.split('\n') if line.strip()]
-            
-            for line in lines:
-                if ':' in line:
-                    key, value = line.split(':', 1)
-                    key = key.strip().lower()
-                    value = value.strip()
-                    
-                    # Map the keys to our result dictionary
-                    if 'name change requires notification' in key:
-                        result['name_change_requires_notification'] = value
-                    elif 'name change considered an assignment' in key:
-                        result['name_change_assignment'] = value
-                    elif 'assignment clause reference' in key:
-                        result['assignment_clause_reference'] = value
-                    elif 'contract require notification for changes to corporate status' in key:
-                        result['material_corporate_structure'] = value
-                    elif 'notices clause present' in key:
-                        result['notices_clause_present'] = value
-                    elif 'action required prior to name change' in key:
-                        result['action_required'] = value
-                    elif 'recommended action' in key:
-                        result['recommended_action'] = value
-            
-            return result
-            
-        except Exception as e:
-            self.logger.error(f"❌ Error parsing detailed response for {company_name}: {e}")
-            return {
-                'company': company_name,
-                'name_change_requires_notification': 'Not Specified',
-                'name_change_assignment': 'Unclear',
-                'assignment_clause_reference': '',
-                'material_corporate_structure': 'No',
-                'notices_clause_present': 'No',
-                'action_required': 'No Action Required',
-                'recommended_action': 'No Action'
-            }
+        """Implementation of abstract method - uses shared parser"""
+        return ResponseParser.parse_detailed_response(text, company_name)
 
 # Convenience function for easy usage
 def create_ollama_client() -> OllamaClient:
