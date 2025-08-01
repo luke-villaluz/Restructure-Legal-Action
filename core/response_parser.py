@@ -46,7 +46,7 @@ class ResponseParser:
     
     @staticmethod
     def _build_result_from_json(data: Dict[str, Any], company_name: str) -> Dict[str, Any]:
-        """Build result from JSON data"""
+        """Build result from JSON data - streamlined to 8 fields"""
         def clean_value(value):
             if not value or value == '':
                 return 'Not Specified'
@@ -55,14 +55,9 @@ class ResponseParser:
         return {
             'company': company_name,
             'contract_name': clean_value(data.get('contract_name')),
-            'contract_counterparty': clean_value(data.get('contract_counterparty')),
             'effective_date': clean_value(data.get('effective_date')),
             'renewal_termination_date': clean_value(data.get('renewal_termination_date')),
-            'name_change_requires_notification': clean_value(data.get('name_change_requires_notification')),
-            'clause_reference': clean_value(data.get('clause_reference')),
-            'is_assignment': clean_value(data.get('is_assignment')),
             'assignment_clause_reference': clean_value(data.get('assignment_clause_reference')),
-            'material_corporate_structure_clauses': clean_value(data.get('material_corporate_structure_clauses')),
             'notices_clause_present': clean_value(data.get('notices_clause_present')),
             'action_required': clean_value(data.get('action_required')),
             'recommended_action': clean_value(data.get('recommended_action'))
@@ -70,16 +65,13 @@ class ResponseParser:
     
     @staticmethod
     def _extract_from_text_fallback(text: str, company_name: str) -> Dict[str, Any]:
-        """Extract data directly from text when JSON fails"""
+        """Extract data directly from text when JSON fails - streamlined"""
         result = ResponseParser._get_default_result(company_name)
         
         # Look for specific patterns in the text
         patterns = {
             'contract_name': r'"([^"]+)"',
-            'contract_counterparty': r'"([^"]+)"',
             'effective_date': r'(\d{4}-\d{2}-\d{2}|\d{1,2}/\d{1,2}/\d{4}|\w+ \d{1,2},? \d{4})',
-            'name_change_requires_notification': r'(Yes|No|Not Specified)',
-            'is_assignment': r'(Yes|No|Unclear)',
             'action_required': r'(Notification Required|Consent Required|No Action Required|Further Legal Review Recommended)',
             'recommended_action': r'(Send Notification|Request Consent|No Action|Escalate for Legal Review)'
         }
@@ -96,14 +88,9 @@ class ResponseParser:
         return {
             'company': company_name,
             'contract_name': 'Not Specified',
-            'contract_counterparty': 'Not Specified',
             'effective_date': 'Not Specified',
             'renewal_termination_date': 'Not Specified',
-            'name_change_requires_notification': 'Not Specified',
-            'clause_reference': 'N/A',
-            'is_assignment': 'Not Specified',
             'assignment_clause_reference': 'N/A',
-            'material_corporate_structure_clauses': 'Not Specified',
             'notices_clause_present': 'Not Specified',
             'action_required': 'Not Specified',
             'recommended_action': 'Not Specified'

@@ -5,10 +5,10 @@ load_dotenv()
 
 # Simple configuration - use a different variable name to avoid conflicts
 PROCESSING_PATH = os.getenv('PROCESSING_PATH')  # Changed from PATH to PROCESSING_PATH
+SUMMARY_PATH = os.getenv('SUMMARY_PATH', 'data/summaries')  # New summary location
 OLLAMA_MODEL = os.getenv('OLLAMA_MODEL_NAME', 'llama2:3.1b')
 SEARCH_TERMS = [term.strip() for term in os.getenv('SEARCH_TERMS', '').split(',') if term.strip()]
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
-OUTPUT_DIR = 'data/summaries'
 
 # Perplexity Configuration
 PERPLEXITY_MODEL = os.getenv('PERPLEXITY_MODEL', 'sonar-pro')
