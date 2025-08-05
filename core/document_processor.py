@@ -44,60 +44,26 @@ class DocumentProcessor:
             return []
     
     def extract_text_from_pdf(self, pdf_path: str) -> Optional[str]:
-        """Extract text from a PDF file using multiple methods with OCR fallback"""
+        """Extract text from a PDF file using Tesseract OCR only"""
         try:
             self.logger.info(f"Extracting text from: {pdf_path}")
             
-            # Try pdfplumber first
-            try:
-                with pdfplumber.open(pdf_path) as pdf:
-                    text = ""
-                    for page in pdf.pages:
-                        page_text = page.extract_text()
-                        if page_text:
-                            text += page_text + "\n"
-                    
-                    if text.strip():
-                        self.logger.info(f"Successfully extracted {len(text)} characters from PDF using pdfplumber")
-                        return text.strip()
-            except Exception as e:
-                self.logger.warning(f"pdfplumber failed: {e}")
-            
-            # Fallback to PyPDF2
-            try:
-                with open(pdf_path, 'rb') as file:
-                    pdf_reader = PyPDF2.PdfReader(file)
-                    text = ""
-                    for page in pdf_reader.pages:
-                        page_text = page.extract_text()
-                        if page_text:
-                            text += page_text + "\n"
-                    
-                    if text.strip():
-                        self.logger.info(f"Successfully extracted {len(text)} characters from PDF using PyPDF2")
-                        return text.strip()
-            except Exception as e:
-                self.logger.warning(f"PyPDF2 failed: {e}")
-            
-            # Final fallback to OCR
-            try:
-                ocr_text = self._extract_text_with_ocr(pdf_path)
-                if ocr_text:
-                    self.logger.info(f"Successfully extracted {len(ocr_text)} characters from PDF using OCR")
-                    return ocr_text
-            except Exception as e:
-                self.logger.warning(f"OCR failed: {e}")
-            
-            self.logger.error(f"Failed to extract text from PDF: {pdf_path}")
-            return None
+            # Use Tesseract OCR directly
+            ocr_text = self._extract_text_with_tesseract(pdf_path)
+            if ocr_text:
+                self.logger.info(f"Successfully extracted {len(ocr_text)} characters from PDF using Tesseract OCR")
+                return ocr_text
+            else:
+                self.logger.error(f"Failed to extract text from PDF: {pdf_path}")
+                return None
             
         except Exception as e:
             self.logger.error(f"Error extracting text from PDF {pdf_path}: {e}")
             return None
     
-    def _extract_text_with_ocr(self, pdf_path: str) -> Optional[str]:
+    def _extract_text_with_tesseract(self, pdf_path: str) -> Optional[str]:
         """
-        Extract text from PDF using EasyOCR (Optical Character Recognition)
+        Extract text from PDF using Tesseract OCR (much better for legal documents)
         
         Args:
             pdf_path: Path to the PDF file
@@ -108,19 +74,18 @@ class DocumentProcessor:
         try:
             # Import OCR dependencies
             try:
-                import easyocr
-                from PIL import Image
+                import pytesseract
+                from PIL import Image, ImageEnhance, ImageFilter
                 import fitz  # PyMuPDF for PDF to image conversion
-                import numpy as np
             except ImportError as e:
                 self.logger.error(f"OCR dependencies not installed: {e}")
-                self.logger.error("Install with: pip install easyocr Pillow PyMuPDF")
+                self.logger.error("Install with: pip install pytesseract Pillow PyMuPDF")
                 return None
             
-            self.logger.info(f"🖼️ Starting EasyOCR processing for: {pdf_path}")
+            # Set Tesseract path (adjust this path to match your installation)
+            pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
             
-            # Initialize EasyOCR reader (first time will download models)
-            reader = easyocr.Reader(['en'])
+            self.logger.info(f"🖼️ Starting Tesseract OCR processing for: {pdf_path}")
             
             # Open PDF with PyMuPDF
             pdf_document = fitz.open(pdf_path)
@@ -132,31 +97,47 @@ class DocumentProcessor:
                     page = pdf_document.load_page(page_num)
                     
                     # Convert page to image with high resolution
-                    mat = fitz.Matrix(2.0, 2.0)  # 2x zoom for better OCR
+                    mat = fitz.Matrix(3.0, 3.0)  # 3x zoom for better OCR
                     pix = page.get_pixmap(matrix=mat)
                     
-                    # Convert to numpy array (this is what EasyOCR expects)
-                    img_array = np.frombuffer(pix.tobytes("png"), dtype=np.uint8)
-                    img = Image.open(io.BytesIO(img_array))
-                    img_array = np.array(img)
+                    # Convert to PIL Image
+                    img_data = pix.tobytes("png")
+                    img = Image.open(io.BytesIO(img_data))
                     
-                    # Perform OCR with EasyOCR
-                    results = reader.readtext(img_array)
+                    # Enhance image for better OCR using PIL only
+                    # Convert to grayscale if needed
+                    if img.mode != 'L':
+                        img = img.convert('L')
                     
-                    # Extract text from results
-                    page_text = ""
-                    for (bbox, text, confidence) in results:
-                        if confidence > 0.5:  # Only keep text with >50% confidence
-                            page_text += text + " "
+                    # Enhance contrast
+                    enhancer = ImageEnhance.Contrast(img)
+                    img = enhancer.enhance(2.0)  # Increase contrast
+                    
+                    # Enhance sharpness
+                    enhancer = ImageEnhance.Sharpness(img)
+                    img = enhancer.enhance(1.5)  # Increase sharpness
+                    
+                    # Apply slight blur to reduce noise
+                    img = img.filter(ImageFilter.GaussianBlur(radius=0.5))
+                    
+                    # Perform OCR with Tesseract
+                    # Use PSM 6 for uniform block of text (good for legal documents)
+                    custom_config = r'--oem 3 --psm 6'
+                    
+                    page_text = pytesseract.image_to_string(
+                        img, 
+                        config=custom_config,
+                        lang='eng'
+                    )
                     
                     if page_text.strip():
                         extracted_text += page_text.strip() + "\n"
-                        self.logger.info(f"EasyOCR extracted {len(page_text)} characters from page {page_num + 1}")
+                        self.logger.info(f"Tesseract extracted {len(page_text)} characters from page {page_num + 1}")
                     else:
-                        self.logger.warning(f"EasyOCR found no text on page {page_num + 1}")
+                        self.logger.warning(f"Tesseract found no text on page {page_num + 1}")
                         
                 except Exception as e:
-                    self.logger.warning(f"EasyOCR failed on page {page_num + 1}: {e}")
+                    self.logger.warning(f"Tesseract failed on page {page_num + 1}: {e}")
                     continue
             
             pdf_document.close()
@@ -164,46 +145,95 @@ class DocumentProcessor:
             if extracted_text.strip():
                 return extracted_text.strip()
             else:
-                self.logger.warning("EasyOCR extracted no text from any page")
+                self.logger.warning("Tesseract extracted no text from any page")
                 return None
                 
         except Exception as e:
-            self.logger.error(f"EasyOCR processing failed: {e}")
+            self.logger.error(f"Tesseract processing failed: {e}")
             return None
     
     def extract_text_from_word(self, word_path: str) -> Optional[str]:
-        """Extract text from a Word document"""
+        """Extract text from a Word document (.docx and .doc)"""
         try:
             self.logger.info(f"Extracting text from Word document: {word_path}")
             
-            # Import docx here to avoid dependency issues if not installed
-            try:
-                from docx import Document
-            except ImportError:
-                self.logger.error("python-docx not installed. Install with: pip install python-docx")
-                return None
+            # Handle .docx files
+            if word_path.lower().endswith('.docx'):
+                try:
+                    from docx import Document
+                    doc = Document(word_path)
+                    
+                    # Extract text from paragraphs
+                    text = ""
+                    for paragraph in doc.paragraphs:
+                        if paragraph.text.strip():
+                            text += paragraph.text.strip() + "\n"
+                    
+                    # Extract text from tables
+                    for table in doc.tables:
+                        for row in table.rows:
+                            for cell in row.cells:
+                                if cell.text.strip():
+                                    text += cell.text.strip() + "\n"
+                    
+                    if text.strip():
+                        self.logger.info(f"Successfully extracted {len(text)} characters from Word document (.docx)")
+                        return text.strip()
+                    else:
+                        self.logger.warning(f"No text extracted from Word document: {word_path}")
+                        return None
+                        
+                except ImportError:
+                    self.logger.error("python-docx not installed. Install with: pip install python-docx")
+                    return None
+                except Exception as e:
+                    self.logger.error(f"Error extracting from .docx: {e}")
+                    return None
             
-            # Open the Word document
-            doc = Document(word_path)
+            # Handle .doc files
+            elif word_path.lower().endswith('.doc'):
+                try:
+                    import win32com.client
+                    import pythoncom
+                    
+                    # Initialize COM
+                    pythoncom.CoInitialize()
+                    
+                    # Create Word application
+                    word = win32com.client.Dispatch("Word.Application")
+                    word.Visible = False
+                    
+                    try:
+                        # Open the document
+                        doc = word.Documents.Open(os.path.abspath(word_path))
+                        
+                        # Extract text
+                        text = doc.Content.Text
+                        
+                        # Close document
+                        doc.Close()
+                        
+                        if text.strip():
+                            self.logger.info(f"Successfully extracted {len(text)} characters from Word document (.doc)")
+                            return text.strip()
+                        else:
+                            self.logger.warning(f"No text extracted from Word document: {word_path}")
+                            return None
+                            
+                    finally:
+                        # Quit Word application
+                        word.Quit()
+                        pythoncom.CoUninitialize()
+                        
+                except ImportError:
+                    self.logger.error("pywin32 not installed. Install with: pip install pywin32")
+                    return None
+                except Exception as e:
+                    self.logger.error(f"Error extracting from .doc: {e}")
+                    return None
             
-            # Extract text from paragraphs
-            text = ""
-            for paragraph in doc.paragraphs:
-                if paragraph.text.strip():
-                    text += paragraph.text.strip() + "\n"
-            
-            # Extract text from tables
-            for table in doc.tables:
-                for row in table.rows:
-                    for cell in row.cells:
-                        if cell.text.strip():
-                            text += cell.text.strip() + "\n"
-            
-            if text.strip():
-                self.logger.info(f"Successfully extracted {len(text)} characters from Word document")
-                return text.strip()
             else:
-                self.logger.warning(f"No text extracted from Word document: {word_path}")
+                self.logger.error(f"Unsupported Word format: {word_path}")
                 return None
             
         except Exception as e:

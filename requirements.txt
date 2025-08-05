@@ -3,10 +3,10 @@ PyPDF2==3.0.1
 pdfplumber==0.10.3
 PyMuPDF==1.23.8  # For PDF to image conversion
 
-# OCR Processing
-easyocr==1.7.0
-Pillow==10.0.1
-numpy==1.24.3
+# OCR Processing - Simplified without OpenCV
+pytesseract==0.3.10
+Pillow==10.1.0
+numpy>=1.26.0
 
 # Word Document Processing
 python-docx==1.1.0
@@ -22,3 +22,6 @@ openpyxl==3.1.2
 
 # Logging and Utilities
 colorama==0.4.6
+
+# Windows COM support for .doc files
+pywin32==306

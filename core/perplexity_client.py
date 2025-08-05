@@ -1,7 +1,8 @@
 import requests
 import json
+import importlib.util
 from typing import Dict, Any, Optional
-from config.settings import PERPLEXITY_MODEL, PERPLEXITY_API_KEY, PERPLEXITY_BASE_URL
+from config.settings import PERPLEXITY_MODEL, PERPLEXITY_API_KEY, PERPLEXITY_BASE_URL, PROMPT_FILE
 from utils.logger import logger
 from core.text_filter import TextFilter
 from core.ai_interface import AIAnalyzer
@@ -75,8 +76,17 @@ class PerplexityClient(AIAnalyzer):
                 self.logger.warning(f"No relevant text found for {company_name}")
                 return None
             
-            # Use filtered text in prompt
-            from prompts.analysis_prompt import ANALYSIS_PROMPT
+            # Load prompt from filepath - much simpler!
+            try:
+                spec = importlib.util.spec_from_file_location("prompt_module", PROMPT_FILE)
+                prompt_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(prompt_module)
+                ANALYSIS_PROMPT = prompt_module.ANALYSIS_PROMPT
+                self.logger.info(f"🔍 Loaded prompt from: {PROMPT_FILE}")
+            except Exception as e:
+                self.logger.error(f"❌ Failed to load prompt from {PROMPT_FILE}: {e}")
+                return None
+            
             prompt = ANALYSIS_PROMPT.format(
                 contract_text=filtered_text,
                 search_terms=", ".join(search_terms)
@@ -95,7 +105,7 @@ class PerplexityClient(AIAnalyzer):
                 "top_p": 0.9
             }
             
-            self.logger.info(f"�� Analyzing {company_name} with Perplexity")
+            self.logger.info(f" Analyzing {company_name} with Perplexity")
             
             response = requests.post(f"{self.base_url}/chat/completions", 
                                    json=payload, 
