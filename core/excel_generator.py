@@ -25,7 +25,9 @@ class ExcelGenerator:
             self._setup_streamlined_headers(ws)
             self._adjust_column_widths(ws)
             
-            filename = "Contract_Name_Change_Analysis.xlsx"
+            filename = input("Enter the name of the file: ")
+            filename = filename + ".xlsx"
+            print(f"File name set: {filename}")
             filepath = os.path.join(self.output_dir, filename)
             
             wb.save(filepath)

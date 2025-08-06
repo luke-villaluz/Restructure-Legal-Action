@@ -1,9 +1,8 @@
 import os
 import io  # Add this import for BytesIO
-import PyPDF2
-import pdfplumber
 from typing import List, Dict, Optional, Any
 from utils.logger import logger
+from config.settings import TESSERACT_PATH
 
 class DocumentProcessor:
     """Process PDF and Word documents for text extraction with OCR fallback"""
@@ -82,8 +81,8 @@ class DocumentProcessor:
                 self.logger.error("Install with: pip install pytesseract Pillow PyMuPDF")
                 return None
             
-            # Set Tesseract path (adjust this path to match your installation)
-            pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+            # Use configurable Tesseract path
+            pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
             
             self.logger.info(f"🖼️ Starting Tesseract OCR processing for: {pdf_path}")
             

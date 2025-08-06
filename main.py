@@ -18,7 +18,7 @@ class LegalAnalyzer:
     def __init__(self):
         self.logger = logger
         self.file_manager = FileManager()
-        self.llm_client = create_ai_client("perplexity")  # Changed to Perplexity
+        self.llm_client = create_ai_client(os.getenv('AI_PROVIDER', 'perplexity'))
         self.excel_generator = ExcelGenerator()
         
         # Track processing statistics
