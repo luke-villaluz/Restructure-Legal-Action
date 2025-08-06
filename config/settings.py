@@ -1,3 +1,5 @@
+"""Configuration settings for the legal contract analysis system."""
+
 import os
 from dotenv import load_dotenv
 

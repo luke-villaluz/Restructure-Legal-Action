@@ -1,56 +1,62 @@
+"""Parse AI responses into structured data."""
+
 import json
 import re
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from utils.logger import logger
 
 class ResponseParser:
+    """Parse AI responses into structured contract analysis data."""
+    
     @staticmethod
     def parse_detailed_response(text: str, company_name: str) -> Dict[str, Any]:
-        """Parse JSON response - handle extra text after JSON"""
+        """Parse JSON response with fallback to text extraction."""
+        text = text.strip()
+        
+        # Remove markdown code blocks
+        text = ResponseParser._clean_markdown(text)
+        
+        # Try JSON parsing first
+        json_data = ResponseParser._extract_json(text)
+        if json_data:
+            logger.info(f"JSON parsing successful for {company_name}")
+            return ResponseParser._build_result_from_json(json_data, company_name)
+        
+        # Fallback to text extraction
+        logger.info(f"Using fallback extraction for {company_name}")
+        return ResponseParser._extract_from_text_fallback(text, company_name)
+    
+    @staticmethod
+    def _clean_markdown(text: str) -> str:
+        """Remove markdown code blocks from text."""
+        if text.startswith('```json'):
+            text = text[7:]
+        if text.startswith('```'):
+            text = text[3:]
+        if text.endswith('```'):
+            text = text[:-3]
+        return text.strip()
+    
+    @staticmethod
+    def _extract_json(text: str) -> Optional[Dict[str, Any]]:
+        """Extract JSON object from text."""
+        json_start = text.find('{')
+        json_end = text.rfind('}')
+        
+        if json_start == -1 or json_end == -1 or json_end <= json_start:
+            return None
+        
+        json_text = text[json_start:json_end + 1]
         try:
-            # Clean the response
-            text = text.strip()
-            
-            # Remove markdown code blocks if present
-            if text.startswith('```json'):
-                text = text[7:]
-            if text.startswith('```'):
-                text = text[3:]
-            if text.endswith('```'):
-                text = text[:-3]
-            
-            text = text.strip()
-            
-            # Find the JSON object - look for opening and closing braces
-            json_start = text.find('{')
-            json_end = text.rfind('}')
-            
-            if json_start != -1 and json_end != -1 and json_end > json_start:
-                # Extract just the JSON part
-                json_text = text[json_start:json_end + 1]
-                
-                try:
-                    data = json.loads(json_text)
-                    logger.info(f"✅ JSON parsing successful for {company_name}")
-                    return ResponseParser._build_result_from_json(data, company_name)
-                except json.JSONDecodeError as e:
-                    logger.warning(f"JSON parsing failed for {company_name}: {e}")
-            
-            # Fallback: extract data from text directly
-            logger.info(f"🔄 Using fallback extraction for {company_name}")
-            return ResponseParser._extract_from_text_fallback(text, company_name)
-            
-        except Exception as e:
-            logger.error(f"❌ All parsing failed for {company_name}: {e}")
-            return ResponseParser._get_default_result(company_name)
+            return json.loads(json_text)
+        except json.JSONDecodeError:
+            return None
     
     @staticmethod
     def _build_result_from_json(data: Dict[str, Any], company_name: str) -> Dict[str, Any]:
-        """Build result from JSON data - streamlined to 8 fields"""
+        """Build result from JSON data."""
         def clean_value(value):
-            if not value or value == '':
-                return 'Not Specified'
-            return str(value).strip()
+            return str(value).strip() if value else 'Not Specified'
         
         return {
             'company': company_name,
@@ -65,10 +71,9 @@ class ResponseParser:
     
     @staticmethod
     def _extract_from_text_fallback(text: str, company_name: str) -> Dict[str, Any]:
-        """Extract data directly from text when JSON fails - streamlined"""
+        """Extract data directly from text when JSON fails."""
         result = ResponseParser._get_default_result(company_name)
         
-        # Look for specific patterns in the text
         patterns = {
             'contract_name': r'"([^"]+)"',
             'effective_date': r'(\d{4}-\d{2}-\d{2}|\d{1,2}/\d{1,2}/\d{4}|\w+ \d{1,2},? \d{4})',
@@ -85,6 +90,7 @@ class ResponseParser:
     
     @staticmethod
     def _get_default_result(company_name: str) -> Dict[str, Any]:
+        """Return default result structure."""
         return {
             'company': company_name,
             'contract_name': 'Not Specified',

@@ -1,7 +1,11 @@
+"""Test suite for document processing functionality."""
+
 import os
 import sys
+import unittest
+from unittest.mock import patch, MagicMock
 
-# Add the parent directory to Python path
+# Add parent directory to path for imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir)
@@ -9,145 +13,122 @@ sys.path.insert(0, parent_dir)
 from core.document_processor import DocumentProcessor
 from config.settings import TEST_FOLDER
 
-def test_data_structure_scanning():
-    """Test scanning data structure - count folders in Vendor and Client directories"""
-    print("Testing data structure scanning...")
+class TestDocumentProcessor(unittest.TestCase):
+    """Test cases for DocumentProcessor class."""
     
-    try:
-        # Check Vendors folder
-        vendors_path = "data/Vendors"
-        if os.path.exists(vendors_path):
-            vendor_folders = [f for f in os.listdir(vendors_path) if os.path.isdir(os.path.join(vendors_path, f))]
-            print(f"✅ Vendors folder: {len(vendor_folders)} subfolders found")
-            for folder in vendor_folders:
-                print(f"   - {folder}")
-        else:
-            print("❌ Vendors folder not found")
+    def setUp(self):
+        """Set up test fixtures."""
+        self.processor = DocumentProcessor()
+        self.test_folder = TEST_FOLDER
+    
+    def test_is_document_file(self):
+        """Test document file type detection."""
+        # Valid document files
+        self.assertTrue(self.processor.is_document_file("test.pdf"))
+        self.assertTrue(self.processor.is_document_file("test.docx"))
+        self.assertTrue(self.processor.is_document_file("test.doc"))
+        self.assertTrue(self.processor.is_document_file("TEST.PDF"))
         
-        # Check Clients folder  
-        clients_path = "data/Clients"
-        if os.path.exists(clients_path):
-            client_folders = [f for f in os.listdir(clients_path) if os.path.isdir(os.path.join(clients_path, f))]
-            print(f"✅ Clients folder: {len(client_folders)} subfolders found")
-            for folder in client_folders:
-                print(f"   - {folder}")
-        else:
-            print("❌ Clients folder not found")
+        # Invalid files
+        self.assertFalse(self.processor.is_document_file("test.txt"))
+        self.assertFalse(self.processor.is_document_file("test.jpg"))
+        self.assertFalse(self.processor.is_document_file("test"))
+    
+    def test_get_all_documents_in_folder(self):
+        """Test document discovery in folder."""
+        if not self.test_folder or not os.path.exists(self.test_folder):
+            self.skipTest("TEST_FOLDER not configured or does not exist")
         
-        return True
-    except Exception as e:
-        print(f"❌ Data structure scanning: FAIL - {e}")
-        return False
+        documents = self.processor.get_all_documents_in_folder(self.test_folder)
+        self.assertIsInstance(documents, list)
+        
+        # Verify all returned files are valid documents
+        for doc_path in documents:
+            self.assertTrue(os.path.exists(doc_path))
+            self.assertTrue(self.processor.is_document_file(doc_path))
+    
+    @patch('core.document_processor.OCR_AVAILABLE', False)
+    def test_pdf_extraction_without_ocr(self):
+        """Test PDF extraction when OCR dependencies are not available."""
+        result = self.processor.extract_text_from_pdf("test.pdf")
+        self.assertIsNone(result)
+    
+    def test_extract_all_text_from_folder(self):
+        """Test complete text extraction workflow."""
+        if not self.test_folder or not os.path.exists(self.test_folder):
+            self.skipTest("TEST_FOLDER not configured or does not exist")
+        
+        result = self.processor.extract_all_text_from_folder(self.test_folder)
+        
+        # Verify result structure
+        self.assertIn('successful_texts', result)
+        self.assertIn('failed_documents', result)
+        self.assertIn('document_stats', result)
+        
+        # Verify stats are consistent
+        stats = result['document_stats']
+        self.assertEqual(
+            stats['total'],
+            stats['successful'] + stats['failed']
+        )
+    
+    def test_combine_document_texts(self):
+        """Test document text combination."""
+        test_texts = {
+            "doc1.pdf": "Content from document 1",
+            "doc2.docx": "Content from document 2"
+        }
+        
+        combined = self.processor.combine_document_texts(test_texts)
+        
+        self.assertIn("=== DOCUMENT: doc1.pdf ===", combined)
+        self.assertIn("=== DOCUMENT: doc2.docx ===", combined)
+        self.assertIn("Content from document 1", combined)
+        self.assertIn("Content from document 2", combined)
+    
+    def test_combine_empty_document_texts(self):
+        """Test combining empty document texts."""
+        result = self.processor.combine_document_texts({})
+        self.assertEqual(result, "")
+    
+    def test_extract_all_text_from_nonexistent_folder(self):
+        """Test extraction from non-existent folder."""
+        result = self.processor.extract_all_text_from_folder("/nonexistent/folder")
+        
+        self.assertEqual(result['successful_texts'], {})
+        self.assertEqual(result['failed_documents'], [])
+        self.assertEqual(result['document_stats']['total'], 0)
 
-def test_document_discovery():
-    """Test discovering documents in the test folder"""
-    print(f"Testing document discovery in: {TEST_FOLDER}")
+def run_document_processor_tests():
+    """Run document processor tests with detailed output."""
+    print("Running Document Processor Tests")
+    print("=" * 50)
     
-    if not TEST_FOLDER:
-        print("❌ TEST_FOLDER not set in .env")
-        return False
+    # Create test suite
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestDocumentProcessor)
     
-    processor = DocumentProcessor()
+    # Run tests with custom runner
+    runner = unittest.TextTestRunner(verbosity=2)
+    result = runner.run(suite)
     
-    try:
-        # Find all documents in the test folder
-        if not os.path.exists(TEST_FOLDER):
-            print(f"❌ Test folder {TEST_FOLDER} does not exist")
-            return False
-        
-        document_files = processor.get_all_documents_in_folder(TEST_FOLDER)
-        
-        if len(document_files) == 0:
-            print(f"❌ No documents found in {TEST_FOLDER}")
-            return False
-        
-        print(f"✅ Document discovery: PASS - Found {len(document_files)} documents")
-        for doc in document_files:
-            print(f"   - {os.path.basename(doc)}")
-        
-        return True
-    except Exception as e:
-        print(f"❌ Document discovery: FAIL - {e}")
-        return False
-
-def test_text_extraction():
-    """Test extracting text from documents in the test folder"""
-    print(f"Testing text extraction from: {TEST_FOLDER}")
+    # Print summary
+    print("\n" + "=" * 50)
+    print(f"Tests run: {result.testsRun}")
+    print(f"Failures: {len(result.failures)}")
+    print(f"Errors: {len(result.errors)}")
+    print(f"Skipped: {len(result.skipped)}")
     
-    if not TEST_FOLDER:
-        print("❌ TEST_FOLDER not set in .env")
-        return False
+    if result.failures:
+        print("\nFailures:")
+        for test, traceback in result.failures:
+            print(f"  - {test}: {traceback}")
     
-    processor = DocumentProcessor()
+    if result.errors:
+        print("\nErrors:")
+        for test, traceback in result.errors:
+            print(f"  - {test}: {traceback}")
     
-    try:
-        # Extract text from all documents
-        result = processor.extract_all_text_from_folder(TEST_FOLDER)
-        
-        successful_texts = result.get('successful_texts', {})
-        failed_documents = result.get('failed_documents', [])
-        document_stats = result.get('document_stats', {})
-        
-        if len(successful_texts) == 0:
-            print(f"❌ No text extracted from {TEST_FOLDER}")
-            return False
-        
-        print(f"✅ Text extraction: PASS - Extracted from {len(successful_texts)} documents")
-        print(f"Document stats: {document_stats}")
-        
-        if failed_documents:
-            print(f"Failed documents: {failed_documents}")
-        
-        # Show sample of combined text
-        combined_text = processor.combine_document_texts(successful_texts)
-        print(f"Combined text length: {len(combined_text)} characters")
-        print(f"First 200 chars: {combined_text[:200]}...")
-        
-        return True
-    except Exception as e:
-        print(f"❌ Text extraction: FAIL - {e}")
-        return False
-
-def test_ocr_extraction():
-    """Test EasyOCR text extraction from scanned PDFs"""
-    print("Testing EasyOCR extraction...")
-    
-    if not TEST_FOLDER:
-        print("❌ TEST_FOLDER not set in .env")
-        return False
-    
-    processor = DocumentProcessor()
-    
-    try:
-        # Find PDF files in test folder
-        pdf_files = [f for f in os.listdir(TEST_FOLDER) 
-                    if f.lower().endswith('.pdf')]
-        
-        if not pdf_files:
-            print("❌ No PDF files found for OCR testing")
-            return False
-        
-        # Test OCR on first PDF
-        test_pdf = os.path.join(TEST_FOLDER, pdf_files[0])
-        print(f"Testing EasyOCR on: {pdf_files[0]}")
-        
-        # Try OCR extraction
-        ocr_text = processor._extract_text_with_ocr(test_pdf)
-        
-        if ocr_text:
-            print(f"✅ EasyOCR extraction: PASS - Extracted {len(ocr_text)} characters")
-            print(f"First 200 chars: {ocr_text[:200]}...")
-            return True
-        else:
-            print("❌ EasyOCR extraction: FAIL - No text extracted")
-            return False
-            
-    except Exception as e:
-        print(f"❌ EasyOCR extraction: FAIL - {e}")
-        return False
+    return result.wasSuccessful()
 
 if __name__ == "__main__":
-    test_data_structure_scanning()
-    test_document_discovery()
-    test_text_extraction()
-    test_ocr_extraction()  # Add this line
+    run_document_processor_tests()

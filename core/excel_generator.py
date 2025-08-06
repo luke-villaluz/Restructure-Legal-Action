@@ -1,72 +1,65 @@
+"""Generate Excel spreadsheet with contract analysis results."""
+
 import os
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, Alignment, PatternFill
-from typing import List, Dict, Any
-from config.settings import SUMMARY_PATH  # Changed from OUTPUT_DIR to SUMMARY_PATH
+from typing import Dict
+from config.settings import SUMMARY_PATH
 from utils.logger import logger
 
 class ExcelGenerator:
-    """Generate Excel spreadsheet with streamlined contract analysis"""
+    """Generate Excel spreadsheet with streamlined contract analysis."""
     
     def __init__(self):
         self.logger = logger
-        self.output_dir = SUMMARY_PATH  # Changed from OUTPUT_DIR to SUMMARY_PATH
+        self.output_dir = SUMMARY_PATH
     
     def create_blank_spreadsheet(self) -> str:
-        """Create a blank Excel spreadsheet with streamlined headers"""
-        try:
-            os.makedirs(self.output_dir, exist_ok=True)
-            
-            wb = Workbook()
-            ws = wb.active
-            ws.title = "Contract Analysis"
-            
-            # Set up streamlined headers
-            self._setup_streamlined_headers(ws)
-            self._adjust_column_widths(ws)
-            
-            filename = input("Enter the name of the file: ")
-            filename = filename + ".xlsx"
-            print(f"File name set: {filename}")
-            filepath = os.path.join(self.output_dir, filename)
-            
-            wb.save(filepath)
-            self.logger.info(f"✅ Streamlined Excel spreadsheet created: {filepath}")
-            return filepath
-            
-        except Exception as e:
-            self.logger.error(f"❌ Failed to create Excel spreadsheet: {e}")
-            raise
+        """Create a blank Excel spreadsheet with streamlined headers."""
+        os.makedirs(self.output_dir, exist_ok=True)
+        
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Contract Analysis"
+        
+        self._setup_streamlined_headers(ws)
+        self._adjust_column_widths(ws)
+        
+        filename = input("Enter the name of the file: ") + ".xlsx"
+        print(f"File name set: {filename}")
+        filepath = os.path.join(self.output_dir, filename)
+        
+        wb.save(filepath)
+        self.logger.info(f"Excel spreadsheet created: {filepath}")
+        return filepath
 
     def add_company_row(self, excel_filepath: str, company_data: Dict[str, str], row_number: int):
-        """Add a single company row to the existing Excel spreadsheet"""
-        try:
-            wb = load_workbook(excel_filepath)
-            ws = wb.active
-            
-            # Streamlined field mappings - only 8 columns
-            ws[f'A{row_number}'] = company_data.get('company', 'Unknown')
-            ws[f'B{row_number}'] = company_data.get('contract_name', 'Not Specified')
-            ws[f'C{row_number}'] = company_data.get('effective_date', 'Not Specified')
-            ws[f'D{row_number}'] = company_data.get('renewal_termination_date', 'Not Specified')
-            ws[f'E{row_number}'] = company_data.get('assignment_clause_reference', 'N/A')
-            ws[f'F{row_number}'] = company_data.get('notices_clause_present', 'Not Specified')
-            ws[f'G{row_number}'] = company_data.get('action_required', 'Not Specified')
-            ws[f'H{row_number}'] = company_data.get('recommended_action', 'Not Specified')
-            
-            # Format the row
-            for col in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']:
-                ws[f'{col}{row_number}'].alignment = Alignment(wrap_text=True, vertical="top")
-            
-            wb.save(excel_filepath)
-            self.logger.info(f"✅ Added streamlined row {row_number} for {company_data.get('company')}")
-            
-        except Exception as e:
-            self.logger.error(f"❌ Failed to add company row: {e}")
-            raise
+        """Add a single company row to the existing Excel spreadsheet."""
+        wb = load_workbook(excel_filepath)
+        ws = wb.active
+        
+        # Map company data to columns
+        column_mappings = [
+            ('A', 'company'),
+            ('B', 'contract_name'),
+            ('C', 'effective_date'),
+            ('D', 'renewal_termination_date'),
+            ('E', 'assignment_clause_reference'),
+            ('F', 'notices_clause_present'),
+            ('G', 'action_required'),
+            ('H', 'recommended_action')
+        ]
+        
+        for col, field in column_mappings:
+            value = company_data.get(field, 'Not Specified')
+            ws[f'{col}{row_number}'] = value
+            ws[f'{col}{row_number}'].alignment = Alignment(wrap_text=True, vertical="top")
+        
+        wb.save(excel_filepath)
+        self.logger.info(f"Added row {row_number} for {company_data.get('company')}")
 
     def _setup_streamlined_headers(self, ws):
-        """Set up the streamlined header row with formatting"""
+        """Set up the streamlined header row with formatting."""
         headers = [
             "Company",
             "Contract Name",
@@ -85,7 +78,7 @@ class ExcelGenerator:
             cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
     
     def _adjust_column_widths(self, ws):
-        """Auto-adjust column widths for streamlined columns"""
+        """Auto-adjust column widths for streamlined columns."""
         column_widths = [20, 30, 15, 20, 35, 25, 40, 30]
         
         for col, width in enumerate(column_widths, 1):
