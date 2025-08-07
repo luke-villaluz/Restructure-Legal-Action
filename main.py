@@ -25,6 +25,9 @@ class LegalAnalyzer:
         self.total_companies = 0
         self.successful_companies = 0
         self.failed_companies = 0
+        
+        # NEW: Track all failed files
+        self.failed_files = []
     
     def run_analysis(self) -> bool:
         """Run the complete legal analysis workflow."""
@@ -54,6 +57,7 @@ class LegalAnalyzer:
             self._process_company(company, index, excel_filepath)
         
         self._log_final_summary()
+        self._print_failed_files_summary()  # NEW
         return True
     
     def _validate_setup(self) -> bool:
@@ -90,6 +94,8 @@ class LegalAnalyzer:
         if not text_result or not text_result.get('combined_text'):
             self.logger.error(f"No text content available for {company_name}")
             self.failed_companies += 1
+            # NEW: Add failed files from this company
+            self._add_failed_files_from_company(company_path, text_result)
             return
         
         # Prepare company data for LLM
@@ -130,6 +136,55 @@ class LegalAnalyzer:
         self.logger.info(f"Successful: {self.successful_companies}")
         self.logger.info(f"Failed: {self.failed_companies}")
         self.logger.info("=" * 60)
+
+    def _add_failed_files_from_company(self, company_path: str, text_result: Dict[str, Any]):
+        """Add failed files from a company to the failure list."""
+        if text_result and 'failed_documents' in text_result:
+            for failed_doc in text_result['failed_documents']:
+                # Get the full path of the failed document
+                full_path = os.path.join(company_path, failed_doc)
+                self.failed_files.append({
+                    'file_path': full_path,
+                    'company': os.path.basename(company_path),
+                    'reason': 'Text extraction failed'
+                })
+    
+    def _print_failed_files_summary(self):
+        """Print a comprehensive summary of all failed files."""
+        if not self.failed_files:
+            self.logger.info("No files failed to process!")
+            return
+        
+        self.logger.info("=" * 80)
+        self.logger.info("FAILED FILES SUMMARY")
+        self.logger.info("=" * 80)
+        self.logger.info(f"Total failed files: {len(self.failed_files)}")
+        self.logger.info("")
+        
+        # Group by company
+        failed_by_company = {}
+        for failed_file in self.failed_files:
+            company = failed_file['company']
+            if company not in failed_by_company:
+                failed_by_company[company] = []
+            failed_by_company[company].append(failed_file)
+        
+        # Print by company
+        for company, files in failed_by_company.items():
+            self.logger.info(f"COMPANY: {company}")
+            self.logger.info(f"Failed files: {len(files)}")
+            for failed_file in files:
+                self.logger.info(f"  - {failed_file['file_path']}")
+                self.logger.info(f"    Reason: {failed_file['reason']}")
+            self.logger.info("")
+        
+        # Print complete list
+        self.logger.info("COMPLETE LIST OF FAILED FILES:")
+        self.logger.info("-" * 80)
+        for failed_file in self.failed_files:
+            self.logger.info(failed_file['file_path'])
+        
+        self.logger.info("=" * 80)
 
 def main():
     """Main entry point."""

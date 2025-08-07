@@ -66,7 +66,8 @@ class ResponseParser:
             'assignment_clause_reference': clean_value(data.get('assignment_clause_reference')),
             'notices_clause_present': clean_value(data.get('notices_clause_present')),
             'action_required': clean_value(data.get('action_required')),
-            'recommended_action': clean_value(data.get('recommended_action'))
+            'recommended_action': clean_value(data.get('recommended_action')),
+            'contact_listed': clean_value(data.get('contact_listed'))
         }
     
     @staticmethod
@@ -99,5 +100,6 @@ class ResponseParser:
             'assignment_clause_reference': 'N/A',
             'notices_clause_present': 'Not Specified',
             'action_required': 'Not Specified',
-            'recommended_action': 'Not Specified'
+            'recommended_action': 'Not Specified',
+            'contact_listed': 'Not Specified'
         }

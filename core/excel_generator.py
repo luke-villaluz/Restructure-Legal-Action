@@ -47,7 +47,8 @@ class ExcelGenerator:
             ('E', 'assignment_clause_reference'),
             ('F', 'notices_clause_present'),
             ('G', 'action_required'),
-            ('H', 'recommended_action')
+            ('H', 'recommended_action'),
+            ('I', 'contact_listed')
         ]
         
         for col, field in column_mappings:
@@ -68,7 +69,8 @@ class ExcelGenerator:
             "Assignment Clause Reference",
             "Notices Clause Present?",
             "Action Required Prior to Name Change or Corporate Restructure",
-            "Recommended Action"
+            "Recommended Action",
+            "Contact Listed"
         ]
         
         for col, header in enumerate(headers, 1):
@@ -79,7 +81,7 @@ class ExcelGenerator:
     
     def _adjust_column_widths(self, ws):
         """Auto-adjust column widths for streamlined columns."""
-        column_widths = [20, 30, 15, 20, 35, 25, 40, 30]
+        column_widths = [20, 30, 15, 20, 35, 25, 40, 30, 25]
         
         for col, width in enumerate(column_widths, 1):
             ws.column_dimensions[chr(64 + col)].width = width

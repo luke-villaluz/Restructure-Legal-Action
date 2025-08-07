@@ -127,6 +127,51 @@ class DocumentProcessor:
         
         return img
     
+    def check_file_format(self, file_path: str) -> str:
+        """Detect the actual format of a file regardless of extension."""
+        try:
+            # Check if file exists and is readable
+            if not os.path.exists(file_path):
+                return "file_not_found"
+            
+            # Check file size
+            file_size = os.path.getsize(file_path)
+            if file_size == 0:
+                return "empty_file"
+            
+            # Try to open as ZIP (for .docx files)
+            try:
+                import zipfile
+                with zipfile.ZipFile(file_path, 'r') as zip_ref:
+                    # Check for Office Open XML structure
+                    file_list = zip_ref.namelist()
+                    if '[Content_Types].xml' in file_list and 'word/document.xml' in file_list:
+                        return "docx"
+                    else:
+                        return "zip_but_not_docx"
+            except zipfile.BadZipFile:
+                # Not a ZIP file, check for .doc format
+                pass
+            
+            # Check for .doc format by looking at file header
+            try:
+                with open(file_path, 'rb') as f:
+                    header = f.read(8)
+                    # .doc files start with specific bytes
+                    if header.startswith(b'\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1'):
+                        return "doc"
+                    # Check for other common formats
+                    elif header.startswith(b'%PDF'):
+                        return "pdf"
+                    else:
+                        return "unknown_binary"
+            except Exception:
+                return "unreadable"
+                
+        except Exception as e:
+            self.logger.error(f"Error detecting file format for {file_path}: {e}")
+            return "error"
+
     def extract_text_from_word(self, word_path: str) -> Optional[str]:
         """Extract text from a Word document (.docx and .doc)."""
         self.logger.info(f"Extracting text from Word document: {word_path}")
@@ -138,7 +183,7 @@ class DocumentProcessor:
         else:
             self.logger.error(f"Unsupported Word format: {word_path}")
             return None
-    
+
     def _extract_from_docx(self, word_path: str) -> Optional[str]:
         """Extract text from .docx file."""
         try:
@@ -169,7 +214,7 @@ class DocumentProcessor:
         except Exception as e:
             self.logger.error(f"Error extracting from .docx: {e}")
             return None
-    
+
     def _extract_from_doc(self, word_path: str) -> Optional[str]:
         """Extract text from .doc file."""
         try:

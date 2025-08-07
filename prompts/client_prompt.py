@@ -21,7 +21,8 @@ Return EXACTLY ONE JSON object with these fields:
     "assignment_clause_reference": "Assignment clause reference if applicable, otherwise 'N/A'",
     "notices_clause_present": "Yes/No/Not Specified - If yes, provide referennce and cite it",
     "action_required": "Specific action or noticerequired prior to assignment of contract or agreement, name change or corporate restructure. If no action is required, return 'No Action Required'. DO NOT GIVE ANY RECOMMENDATIONS, THIS IS SOLELY IF SOMETHING IS REQUIRED PER CONTRACT OR AGREEMENT",
-    "recommended_action": "Recommended next steps, please include a time range for notification only if stated explicitly in the contract, as well as if an acknowledgement or delivery confirmation is required by the client (often mentioned in the notices clause)"
+    "recommended_action": "Recommended next steps, please include a time range for notification only if stated explicitly in the contract, as well as if an acknowledgement or delivery confirmation is required by the client (often mentioned in the notices clause)",
+    "contact_listed": "Yes/No - If yes, Include any specific contact information for the client that might be listed within the Notices clause for us to reach to"
 }}
 
 **IMPORTANT: Analyze all documents as ONE contract package and return exactly ONE summary object, not one object per document file.**

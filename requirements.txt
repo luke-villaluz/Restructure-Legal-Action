@@ -1,11 +1,11 @@
-# PDF Processing - Only what's actually used
-PyMuPDF==1.23.8  # For PDF to image conversion
+# PDF Processing
+PyMuPDF==1.23.8
 
 # OCR Processing
 pytesseract==0.3.10
 Pillow==10.1.0
 
-# Word Document Processing
+# Word Document Processing (Industry Standard)
 python-docx==1.1.0
 
 # LLM Integration
@@ -20,5 +20,5 @@ openpyxl==3.1.2
 # Logging and Utilities
 colorama==0.4.6
 
-# Windows COM support for .doc files (optional)
+# Windows COM support for .doc files (Industry Standard)
 pywin32==306; sys_platform == "win32"

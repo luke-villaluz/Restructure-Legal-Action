@@ -11,6 +11,7 @@ class FileManager:
     def __init__(self):
         self.logger = logger
         self.base_path = PROCESSING_PATH
+        self.failed_files = []  # NEW: Track failed files
         
     def get_all_companies(self) -> List[Dict[str, str]]:
         """Discover all company folders in the processing path."""
@@ -60,6 +61,16 @@ class FileManager:
         from core.document_processor import DocumentProcessor
         processor = DocumentProcessor()
         extraction_results = processor.extract_all_text_from_folder(company_folder_path)
+        
+        # NEW: Track failed files
+        if extraction_results['failed_documents']:
+            for failed_doc in extraction_results['failed_documents']:
+                full_path = os.path.join(company_folder_path, failed_doc)
+                self.failed_files.append({
+                    'file_path': full_path,
+                    'company': os.path.basename(company_folder_path),
+                    'reason': 'Text extraction failed'
+                })
         
         if not extraction_results['successful_texts']:
             self.logger.warning(f"No text extracted from {company_folder_path}")
@@ -118,3 +129,7 @@ class FileManager:
             'document_stats': {'total': 0, 'successful': 0, 'failed': 0},
             'failed_documents': []
         }
+
+    def get_failed_files(self) -> List[Dict[str, str]]:
+        """Get list of all failed files."""
+        return self.failed_files
